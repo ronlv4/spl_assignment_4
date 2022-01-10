@@ -21,14 +21,44 @@ def create_tables(db_cursor):
     cursor.execute("CREATE TABLE orders(ID INTEGER PRIMARY KEY,location VARCHAR NOT NULL, hat INTEGER REFERENCES hats(id));")
 
 
-def execute_orders(path, cursor):
-    pass
+def generate_orders(path):
+    with open(path, 'r') as f:
+        for line in f:
+            yield line[:-1].split(',')
+
+
+def execute_order(db_cursor, location, topping):
+    first_command = f'SELECT hats.ID, hats.quantity, suppliers.name from hats JOIN suppliers ON hats.supplier=suppliers.ID WHERE hats.topping="{topping}" ORDER BY suppliers.ID'
+    print(f'first command:\n{first_command}')
+    db_cursor.execute(first_command)
+    hat_id, current_topping_quantity, supplier = db_cursor.fetchone()
+    if current_topping_quantity == 1:
+        second_command = f'DELETE FROM hats WHERE ID = {hat_id}'
+    else:
+        second_command = f'UPDATE hats SET quantity = {int(current_topping_quantity) - 1} WHERE ID = {hat_id}'
+    third_command = f'INSERT INTO orders VALUES(,?,?)'
+    db_cursor.execute(third_command, (location, hat_id))
+    # print(f'second_command:\n{second_command}')
+    db_cursor.execute(second_command)
+    return supplier
+
+
+# cursor.execute("SELECT NAME FROM Students WHERE ID=(?)", (1,))
+#     studentwithid1 = cursor.fetchone()
+#     print("Student with id 1: " + str(studentwithid1))
+#
+#     # let's get the name of the student of id 5
+#     cursor.execute("SELECT NAME FROM Students WHERE ID=(?)", (5,))
+#     studentwithid5 = cursor.fetchone()
+#     print("Student with id 5: " + str(studentwithid5))
+
 
 
 
 if  __name__ == '__main__':
     config_path = sys.argv[1]
     orders_path = sys.argv[2]
+    output_path = sys.argv[3]
     db_already_existed = os.path.isfile('myDB.db')
     db_con = sqlite3.connect('myDB.db')
     with db_con:
@@ -36,9 +66,10 @@ if  __name__ == '__main__':
         if not db_already_existed:
             create_tables(cursor)
             populate_db_from_input(config_path, cursor)
-        execute_orders(orders_path, cursor)
-
-
+        with open(output_path, 'w') as f:
+            for location, topping in generate_orders(orders_path):
+                supplier = execute_order(cursor, location, topping)
+                f.write(','.join((topping, supplier, location)) + '\n')
 # databaseexisted = os.path.isfile('example2.db')
 #
 # dbcon = sqlite3.connect('example2.db')
