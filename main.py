@@ -2,25 +2,21 @@ import sqlite3
 
 import os
 import sys
+from Repository import repo
+from DTO.Hat import Hat
+from DTO.Order import Order
+from DTO.Supplier import Supplier
 
 
-def populate_db_from_input(path, db_cursor):
+def populate_db_from_input(path):
     with open(path, 'r') as f:
         num_of_hats, num_of_suppliers = map(int, f.readline().split(','))
         for index, line in zip(range(num_of_hats), f):
-            row = tuple(line[:-1].split(','))
-            db_cursor.execute("INSERT INTO hats VALUES(?,?,?,?)", row)
+            hat = Hat(*(line[:-1].split(',')))
+            repo.hats.insert(hat)
         for index, line in zip(range(num_of_suppliers), f):
-            row = tuple(line[:-1].split(',')) if line[-1] == '\n' else tuple(line.split(','))
-            db_cursor.execute("INSERT INTO suppliers VALUES(?,?)", row)
-
-
-def create_tables(db_cursor):
-    db_cursor.execute(
-        "CREATE TABLE hats(ID INTEGER PRIMARY KEY,topping VARCHAR NOT NULL, supplier INTEGER REFERENCES Supplier(id), quantity INTEGER NOT NULL);")
-    db_cursor.execute("CREATE TABLE suppliers(ID INTEGER PRIMARY KEY,name VARCHAR NOT NULL);")
-    db_cursor.execute(
-        "CREATE TABLE orders(ID INTEGER PRIMARY KEY,location VARCHAR NOT NULL, hat INTEGER REFERENCES hats(id));")
+            supplier = Supplier(*(line[:-1].split(','))) if line[-1] == '\n' else Supplier(*(line.split(',')))
+            repo.suppliers.insert(supplier)
 
 
 def generate_orders(path):
@@ -29,34 +25,24 @@ def generate_orders(path):
             yield line[:-1].split(',') if line[-1] == '\n' else line.split(',')
 
 
-def execute_order(db_cursor, location, topping):
-    db_cursor.execute(f'SELECT hats.ID, hats.quantity, suppliers.name from hats JOIN suppliers ON hats.supplier=suppliers.ID WHERE hats.topping="{topping}" ORDER BY suppliers.ID ASC')
-    hat_id, current_topping_quantity, supplier = db_cursor.fetchone()
-    if current_topping_quantity == 1:
-        command = f'DELETE FROM hats WHERE ID = {hat_id}'
+def execute_order(location, topping):
+    hat_with_supplier = repo.get_hat_with_supplier(topping)
+    if hat_with_supplier.hat_quantity == 1:
+        repo.hats.delete(hat_with_supplier.hat_id)
     else:
-        command = f'UPDATE hats SET quantity = {int(current_topping_quantity) - 1} WHERE ID = {hat_id}'
-    db_cursor.execute(command)
-    db_cursor.execute(f'INSERT INTO orders VALUES(null,?,?)', (location, hat_id))
-    return supplier
+        repo.hats.update_quantity(hat_with_supplier.hat_id, hat_with_supplier.hat_quantity - 1)
+    repo.orders.insert(Order(topping, location))
+    return hat_with_supplier.supplier_name
 
 
 def main():
-    config_path = sys.argv[1]
-    orders_path = sys.argv[2]
-    output_path = sys.argv[3]
-    db_name = sys.argv[4]
-    db_already_existed = os.path.isfile(db_name)
-    db_con = sqlite3.connect(db_name)
-    with db_con:
-        cursor = db_con.cursor()
-        if not db_already_existed:
-            create_tables(cursor)
-            populate_db_from_input(config_path, cursor)
-        with open(output_path, 'w') as f:
-            for location, topping in generate_orders(orders_path):
-                supplier = execute_order(cursor, location, topping)
-                f.write(','.join((topping, supplier, location)) + '\n')
+    config_path, orders_path, output_path = sys.argv[1], sys.argv[2], sys.argv[3]
+    if repo.create_tables():
+        populate_db_from_input(config_path)
+    with open(output_path, 'w') as f:
+        for location, topping in generate_orders(orders_path):
+            supplier = execute_order(location, topping)
+            f.write(','.join((topping, supplier, location)) + '\n')
 
 
 if __name__ == '__main__':
