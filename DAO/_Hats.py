@@ -13,3 +13,11 @@ class _Hats:
         c = self.db_con.cursor()
         c.execute("SELECT id, topping, supplier, quantity FROM hats WHERE id = ?", [hat_id])
         return Hat(*c.fetchone())
+
+    def delete(self, hat_id):
+        c = self.db_con.cursor()
+        c.execute(f'DELETE FROM hats WHERE ID = {hat_id}')
+
+    def update_quantity(self, hat_id, quantity):
+        c = self.db_con.cursor()
+        c.execute(f'UPDATE hats SET quantity = {quantity} WHERE ID = {hat_id}')

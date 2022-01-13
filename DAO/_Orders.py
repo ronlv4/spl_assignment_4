@@ -6,5 +6,5 @@ class _Orders:
         self.db_con = db_con
 
     def insert(self, order):
-        self.db_con.execute("INSERT INTO hats(topping, location) VALUES (null,?,?)",
-                            [order.topping, order.location])
+        self.db_con.execute("INSERT INTO orders(location, hat) VALUES (?,?)",
+                            [order.location, order.hat_id])
