@@ -31,7 +31,7 @@ def execute_order(location, topping):
         repo.hats.delete(hat_with_supplier.hat_id)
     else:
         repo.hats.update_quantity(hat_with_supplier.hat_id, hat_with_supplier.hat_quantity - 1)
-    repo.orders.insert(Order(topping, location))
+    repo.orders.insert(Order(location, hat_with_supplier.hat_id))
     return hat_with_supplier.supplier_name
 
 
