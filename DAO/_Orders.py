@@ -6,5 +6,12 @@ class _Orders:
         self.db_con = db_con
 
     def insert(self, order):
-        self.db_con.execute("INSERT INTO hats(topping, location) VALUES (null,?,?)",
-                            [order.topping, order.location])
+        self.db_con.execute("""INSERT INTO hats(id, location, hat) VALUES (?,?,?)""",
+                            [order.id, order.location, order.hat])
+
+    def find(self, order_id):
+        c = self.db_con.cursor()
+        c.execute("""SELECT id, location, hat FROM hats WHERE id = ?""", [order_id])
+        return Order(*c.fetchone())
+
+
