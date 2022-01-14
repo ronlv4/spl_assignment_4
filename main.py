@@ -75,6 +75,7 @@ def main():
             topping = cur[1]
             cur_order = repo.new_order(city, topping, cur_order_id)
             open(output_path, "w+").write(cur_order[0]+","+cur_order[1]+","+cur_order[2]+"\n")
+            repo.hats.delete()
 
 
     # with db_con:

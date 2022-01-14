@@ -55,7 +55,6 @@ class _Repository:
         c = self._conn.cursor()
         c.execute("""SELECT hats.topping, suppliers.name, b.location FROM ((SELECT hat, location FROM orders WHERE id =
          ? ) AS b JOIN hats ON hats.id=b.hat) AS a JOIN suppliers ON a.supplier=suppliers.id""", [order_id])
-        repo.hats.delete()
         return c.fetchone()
 
 # the repository singleton
