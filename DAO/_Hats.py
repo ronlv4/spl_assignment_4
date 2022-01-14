@@ -14,6 +14,9 @@ class _Hats:
         c.execute("SELECT id, topping, supplier, quantity FROM hats WHERE id = ?", [hat_id])
         return Hat(*c.fetchone())
 
+    def delete(self):
+        self._conn.execute("""DELETE FROM hats WHERE quantity = (?)""", [0])
+
     def find_sup_topping(self, topping):
         c = self.db_con.cursor()
         c.execute("""SELECT id FROM hats WHERE topping = ? ORDER BY supplier ASC LIMIT 1 """, [topping])
